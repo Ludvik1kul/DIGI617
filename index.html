@@ -2,10 +2,10 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Random Sentiment Demo</title>
+  <title>Sentiment Demo</title>
 </head>
 <body>
-  <h2>Random Sentiment Generator</h2>
+  <h2>Sentiment Generator</h2>
   <textarea id="text" rows="4" cols="50" placeholder="Type something..."></textarea><br><br>
   <button onclick="analyze()">Analyze</button>
   <p id="result"></p>
@@ -13,9 +13,9 @@
   <script>
     function analyze() {
       let text = document.getElementById("text").value;
-      let randomScore = Math.random().toFixed(3); // random number [0,1) with 3 decimals
+      let randomScore = Math.random().toFixed(3); // number [0,1) with 3 decimals
       document.getElementById("result").innerText = 
-        `Input: "${text}"\nRandom Sentiment Score: ${randomScore}`;
+        `Input: "${text}"\nSentiment Score: ${randomScore}`;
     }
   </script>
 </body>
