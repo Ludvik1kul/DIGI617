@@ -1,3 +1,8 @@
 import sys
-input=sys.argv[1]
-print(input)
+
+def main():
+    input=sys.argv[1]
+    return input
+
+if __name__ == "__main__":
+    main()
