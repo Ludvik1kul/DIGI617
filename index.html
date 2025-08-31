@@ -14,7 +14,7 @@
     function analyze() {
       let text = document.getElementById("text").value;
       // run index.php with text as parameter
-      fetch(`index.php?text=${encodeURIComponent(text)}`)
+      fetch(`access.php?text=${encodeURIComponent(text)}`)
         .then(response => response.text())
         .then(data => {
           document.getElementById("result").innerText = 
