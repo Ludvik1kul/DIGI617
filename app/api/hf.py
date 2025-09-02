@@ -20,19 +20,30 @@ def handler(request):
 
         response = requests.post(API_URL, headers=headers, json={"inputs": text})
 
-        # return Hugging Face error messages if request failed
+        try:
+            result = response.json()  # try JSON first
+        except ValueError:
+            # fallback if HF returned plain text / HTML
+            return {
+                "statusCode": response.status_code,
+                "headers": {"Content-Type": "application/json"},
+                "body": json.dumps({
+                    "error": "Non-JSON response from Hugging Face",
+                    "status_code": response.status_code,
+                    "details": response.text
+                })
+            }
+
         if response.status_code != 200:
             return {
                 "statusCode": response.status_code,
                 "headers": {"Content-Type": "application/json"},
                 "body": json.dumps({
                     "error": "Hugging Face API error",
-                    "status_code": response.status_code,
-                    "details": response.text
+                    "details": result
                 })
             }
 
-        result = response.json()
         return {
             "statusCode": 200,
             "headers": {"Content-Type": "application/json"},
