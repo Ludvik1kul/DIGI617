@@ -12,23 +12,36 @@ def handler(request):
         text = data.get("inputs", "")
 
         if not headers["Authorization"]:
-            raise RuntimeError("HF_TOKEN not set in environment variables")
+            return {
+                "statusCode": 500,
+                "headers": {"Content-Type": "application/json"},
+                "body": json.dumps({"error": "HF_TOKEN not set in environment variables"})
+            }
 
         response = requests.post(API_URL, headers=headers, json={"inputs": text})
 
+        # return Hugging Face error messages if request failed
         if response.status_code != 200:
-            raise RuntimeError(f"Hugging Face API error {response.status_code}: {response.text}")
+            return {
+                "statusCode": response.status_code,
+                "headers": {"Content-Type": "application/json"},
+                "body": json.dumps({
+                    "error": "Hugging Face API error",
+                    "status_code": response.status_code,
+                    "details": response.text
+                })
+            }
 
         result = response.json()
-
         return {
             "statusCode": 200,
             "headers": {"Content-Type": "application/json"},
             "body": json.dumps(result)
         }
+
     except Exception as e:
         return {
             "statusCode": 500,
             "headers": {"Content-Type": "application/json"},
-            "body": json.dumps({"error": str(e)})
+            "body": json.dumps({"error": f"Backend crash: {str(e)}"})
         }

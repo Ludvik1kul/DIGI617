@@ -20,11 +20,12 @@
         body: JSON.stringify({ inputs: text })
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        throw new Error(`Server error: ${res.status}`);
+        throw new Error(data.error || JSON.stringify(data));
       }
 
-      const data = await res.json();
       document.getElementById("result").innerText = JSON.stringify(data, null, 2);
     } catch (err) {
       document.getElementById("result").innerText = "Error: " + err.message;
