@@ -3,47 +3,88 @@
 <head>
   <meta charset="UTF-8">
   <title>Sentiment Demo</title>
+  <style>
+    .stars {
+      font-size: 2em;
+      line-height: 1;
+      display: flex;
+      gap: 0.1em;
+    }
+    .star {
+      color: #222; /* default dark for empty stars */
+      transition: color 0.3s ease;
+    }
+    .star.filled {
+      color: gold;
+    }
+    #confidence {
+      margin-top: 0.5em;
+      font-size: 1em;
+      color: #555;
+    }
+  </style>
 </head>
 <body>
   <h2>Sentiment Generator</h2>
   <textarea id="text" rows="4" cols="50" placeholder="Type something..."></textarea><br><br>
   <button onclick="analyze()">Analyze</button>
-  <pre id="result"></pre>
-<script>
-  async function analyze() {
-    const text = document.getElementById("text").value;
-    if (!text) return;
+  <div id="result" class="stars"></div>
+  <div id="confidence"></div>
 
-    document.getElementById("result").innerText = "Analyzing...";
+  <script>
+    async function analyze() {
+      const text = document.getElementById("text").value;
+      if (!text) return;
 
-    try {
-      const res = await fetch("/api/hf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ inputs: text })
-      });
+      const resultDiv = document.getElementById("result");
+      const confDiv = document.getElementById("confidence");
+      resultDiv.innerHTML = '';
+      confDiv.innerText = 'Analyzing...';
 
-      const data = await res.json();
+      try {
+        const res = await fetch("/api/hf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ inputs: text })
+        });
 
-      if (!res.ok) {
-        throw new Error(data.error || JSON.stringify(data));
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || JSON.stringify(data));
+        }
+
+        // Hugging Face returns an array of arrays
+        const predictions = Array.isArray(data[0]) ? data[0] : data;
+
+        // Pick the highest-scoring label
+        const best = predictions.reduce((a, b) => (a.score > b.score ? a : b));
+
+        const numStars = parseInt(best.label); // e.g., "3 stars" -> 3
+        const totalStars = 5;
+
+        // Create star elements
+        for (let i = 0; i < totalStars; i++) {
+          const star = document.createElement('span');
+          star.classList.add('star');
+          star.innerText = '★';
+          resultDiv.appendChild(star);
+        }
+
+        // Animate filling stars one by one
+        const stars = resultDiv.querySelectorAll('.star');
+        for (let i = 0; i < numStars; i++) {
+          setTimeout(() => stars[i].classList.add('filled'), i * 300);
+        }
+
+        // Display confidence
+        confDiv.innerText = `Confidence: ${(best.score * 100).toFixed(1)}%`;
+
+      } catch (err) {
+        resultDiv.innerHTML = '';
+        confDiv.innerText = "Error: " + err.message;
       }
-
-      // Hugging Face returns an array of arrays
-      const predictions = Array.isArray(data[0]) ? data[0] : data;
-
-      // Pick the highest-scoring label
-      const best = predictions.reduce((a, b) => (a.score > b.score ? a : b));
-
-      // Convert label to stars (e.g., "3 stars" -> "⭐⭐⭐")
-      const stars = "⭐".repeat(parseInt(best.label));
-
-      document.getElementById("result").innerText = `${stars} (${best.score.toFixed(2)})`;
-
-    } catch (err) {
-      document.getElementById("result").innerText = "Error: " + err.message +" Kontakt Lsl007@uib.no";
     }
-  }
-</script>
+  </script>
 </body>
 </html>
