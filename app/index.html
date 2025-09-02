@@ -12,36 +12,39 @@
 
   <script>
     async function analyze() {
-      const text = document.getElementById("text").value;
-      if (!text) return;
+  const text = document.getElementById("text").value;
+  if (!text) return;
 
-      document.getElementById("result").innerText = "Analyzing...";
+  document.getElementById("result").innerText = "Analyzing...";
 
-      try {
-        const res = await fetch("/api/hf", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ inputs: text })
-        });
+  try {
+    const res = await fetch("/api/hf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inputs: text })
+    });
 
-        const data = await res.json();
+    const data = await res.json();
 
-        if (!res.ok) {
-          throw new Error(data.error || JSON.stringify(data));
-        }
-
-        // Pretty print sentiment
-        if (Array.isArray(data)) {
-          document.getElementById("result").innerText =
-            data.map(d => `${d.label}: ${d.score}`).join("\n");
-        } else {
-          document.getElementById("result").innerText = JSON.stringify(data, null, 2);
-        }
-
-      } catch (err) {
-        document.getElementById("result").innerText = "Error: " + err.message;
-      }
+    if (!res.ok) {
+      throw new Error(data.error || JSON.stringify(data));
     }
+
+    // Check if data is an array with label/score
+    if (Array.isArray(data) && data.length && data[0].label && data[0].score !== undefined) {
+      // Get the label with the highest score
+      const best = data.reduce((a, b) => (a.score > b.score ? a : b));
+      document.getElementById("result").innerText = `Sentiment: ${best.label} (score: ${best.score})`;
+    } else {
+      // Fallback: show raw JSON
+      document.getElementById("result").innerText = JSON.stringify(data, null, 2);
+    }
+
+  } catch (err) {
+    document.getElementById("result").innerText = "Error: " + err.message;
+  }
+}
+
   </script>
 </body>
 </html>
