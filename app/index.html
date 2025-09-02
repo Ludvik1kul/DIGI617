@@ -11,15 +11,17 @@
   <p id="result"></p>
 
   <script>
-    function analyze() {
-      let text = document.getElementById("text").value;
-      // run index.php with text as parameter
-      fetch(`access.php?text=${encodeURIComponent(text)}`)
-        .then(response => response.text())
-        .then(data => {
-          document.getElementById("result").innerText = 
-            `Input: "${text}"\nSentiment Score: ${data}`;
-        });
+    async function analyze() {
+      const text = document.getElementById("text").value;
+
+      const res = await fetch("/api/hf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inputs: text })
+      });
+
+      const data = await res.json();
+      document.getElementById("result").innerText = JSON.stringify(data, null, 2);
     }
   </script>
 </body>
