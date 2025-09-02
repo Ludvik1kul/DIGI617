@@ -3,24 +3,32 @@ import os
 import json
 import requests
 
-API_URL = "https://router.huggingface.co/hf-inference/models/nlptown/bert-base-multilingual-uncased-sentiment"
-headers = {"Authorization": f"Bearer {os.environ['HF_TOKEN']}"}
+API_URL = "https://api-inference.huggingface.co/models/nlptown/bert-base-multilingual-uncased-sentiment"
+headers = {"Authorization": f"Bearer {os.environ.get('HF_TOKEN', '')}"}
 
 def handler(request):
     try:
-        data = request.json()  # frontend sends JSON
+        data = request.json()
         text = data.get("inputs", "")
 
+        if not headers["Authorization"]:
+            raise RuntimeError("HF_TOKEN not set in environment variables")
+
         response = requests.post(API_URL, headers=headers, json={"inputs": text})
+
+        if response.status_code != 200:
+            raise RuntimeError(f"Hugging Face API error {response.status_code}: {response.text}")
+
         result = response.json()
 
         return {
             "statusCode": 200,
             "headers": {"Content-Type": "application/json"},
-            "body": json.dumps(result)  # 🔑 must be a string
+            "body": json.dumps(result)
         }
     except Exception as e:
         return {
             "statusCode": 500,
-            "body": json.dumps({"error": str(e) + " Kontakt Lsl007@uib.no"})
+            "headers": {"Content-Type": "application/json"},
+            "body": json.dumps({"error": str(e)})
         }
