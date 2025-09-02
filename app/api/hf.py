@@ -8,7 +8,9 @@ headers = {"Authorization": f"Bearer {os.environ.get('HF_TOKEN', '')}"}
 
 def handler(request):
     try:
-        data = request.json()
+        # request["body"] is a raw string
+        body = request.get("body", "{}")
+        data = json.loads(body) if body else {}
         text = data.get("inputs", "")
 
         if not headers["Authorization"]:
@@ -20,11 +22,9 @@ def handler(request):
 
         response = requests.post(API_URL, headers=headers, json={"inputs": text})
 
-        # Always wrap the response safely
         try:
             result = response.json()
         except Exception:
-            # If HF returns plain text, wrap it as JSON
             result = {"raw_response": response.text}
 
         if response.status_code != 200:
