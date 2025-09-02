@@ -9,42 +9,41 @@
   <textarea id="text" rows="4" cols="50" placeholder="Type something..."></textarea><br><br>
   <button onclick="analyze()">Analyze</button>
   <pre id="result"></pre>
+<script>
+  async function analyze() {
+    const text = document.getElementById("text").value;
+    if (!text) return;
 
-  <script>
-    async function analyze() {
-  const text = document.getElementById("text").value;
-  if (!text) return;
+    document.getElementById("result").innerText = "Analyzing...";
 
-  document.getElementById("result").innerText = "Analyzing...";
+    try {
+      const res = await fetch("/api/hf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inputs: text })
+      });
 
-  try {
-    const res = await fetch("/api/hf", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ inputs: text })
-    });
+      const data = await res.json();
 
-    const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || JSON.stringify(data));
+      }
 
-    if (!res.ok) {
-      throw new Error(data.error || JSON.stringify(data));
+      // Hugging Face returns an array of arrays
+      const predictions = Array.isArray(data[0]) ? data[0] : data;
+
+      // Pick the highest-scoring label
+      const best = predictions.reduce((a, b) => (a.score > b.score ? a : b));
+
+      // Convert label to stars (e.g., "3 stars" -> "⭐⭐⭐")
+      const stars = "⭐".repeat(parseInt(best.label));
+
+      document.getElementById("result").innerText = `${stars} (${best.score.toFixed(2)})`;
+
+    } catch (err) {
+      document.getElementById("result").innerText = "Error: " + err.message +" Kontakt Lsl007@uib.no";
     }
-
-    // Check if data is an array with label/score
-    if (Array.isArray(data) && data.length && data[0].label && data[0].score !== undefined) {
-      // Get the label with the highest score
-      const best = data.reduce((a, b) => (a.score > b.score ? a : b));
-      document.getElementById("result").innerText = `Sentiment: ${best.label} (score: ${best.score})`;
-    } else {
-      // Fallback: show raw JSON
-      document.getElementById("result").innerText = JSON.stringify(data, null, 2);
-    }
-
-  } catch (err) {
-    document.getElementById("result").innerText = "Error: " + err.message;
   }
-}
-
-  </script>
+</script>
 </body>
 </html>
