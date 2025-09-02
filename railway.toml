@@ -1,6 +1,0 @@
-[build]
-# no build step needed for PHP + Python script
-build = ""
-
-[deploy]
-start = "php -S 0.0.0.0:$PORT -t app"
