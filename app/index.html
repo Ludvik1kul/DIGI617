@@ -10,19 +10,27 @@
   <button onclick="analyze()">Analyze</button>
   <p id="result"></p>
 
-  <script>
-    async function analyze() {
-      const text = document.getElementById("text").value;
-
+<script>
+  async function analyze() {
+    const text = document.getElementById("text").value;
+    try {
       const res = await fetch("/api/hf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ inputs: text })
       });
 
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status}`);
+      }
+
       const data = await res.json();
       document.getElementById("result").innerText = JSON.stringify(data, null, 2);
+    } catch (err) {
+      document.getElementById("result").innerText = "Error: " + err.message;
     }
-  </script>
+  }
+</script>
+
 </body>
 </html>

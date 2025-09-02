@@ -1,5 +1,6 @@
 # api/hf.py
 import os
+import json
 import requests
 
 API_URL = "https://router.huggingface.co/hf-inference/models/nlptown/bert-base-multilingual-uncased-sentiment"
@@ -7,7 +8,7 @@ headers = {"Authorization": f"Bearer {os.environ['HF_TOKEN']}"}
 
 def handler(request):
     try:
-        data = request.json()  # Get JSON body from frontend
+        data = request.json()  # frontend sends JSON
         text = data.get("inputs", "")
 
         response = requests.post(API_URL, headers=headers, json={"inputs": text})
@@ -16,10 +17,10 @@ def handler(request):
         return {
             "statusCode": 200,
             "headers": {"Content-Type": "application/json"},
-            "body": result
+            "body": json.dumps(result)  # 🔑 must be a string
         }
     except Exception as e:
         return {
             "statusCode": 500,
-            "body": {"error": str(e)}
+            "body": json.dumps({"error": str(e) + " Kontakt Lsl007@uib.no"})
         }
