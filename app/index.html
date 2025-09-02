@@ -20,10 +20,17 @@
         body: JSON.stringify({ inputs: text })
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get("content-type") || "";
+
+      let data;
+      if (contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        data = { error: "Non-JSON response", text: await res.text() };
+      }
 
       if (!res.ok) {
-        throw new Error(data.error || JSON.stringify(data));
+        throw new Error(JSON.stringify(data));
       }
 
       document.getElementById("result").innerText = JSON.stringify(data, null, 2);
