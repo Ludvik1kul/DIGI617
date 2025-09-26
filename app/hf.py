@@ -3,7 +3,7 @@ import os
 import json
 import requests
 
-API_URL = "https://api-inference.huggingface.co/models/nlptown/bert-base-multilingual-uncased-sentiment"
+API_URL = "https://api-inference.huggingface.co/models/Kushtrim/norbert3-large-norsk-sentiment-sst2"
 headers = {"Authorization": f"Bearer {os.environ.get('HF_TOKEN', '')}"}
 
 def handler(request):

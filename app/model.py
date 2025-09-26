@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import sys
 from transformers import pipeline, AutoModelForSequenceClassification, AutoTokenizer
 import pandas as pd
@@ -6,7 +7,7 @@ tokenizer = AutoTokenizer.from_pretrained("Kushtrim/norbert3-large-norsk-sentime
 model = AutoModelForSequenceClassification.from_pretrained("Kushtrim/norbert3-large-norsk-sentiment-sst2", trust_remote_code=True, torch_dtype="auto")
 classifier = pipeline("text-classification", model=model, tokenizer=tokenizer)
 
-def main(text=str(sys.argv[1])):
+def main(text=sys.argv[1]):
     output=classifier(text)
     return output
 

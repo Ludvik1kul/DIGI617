@@ -32,59 +32,76 @@
   <div id="confidence"></div>
 
   <script>
-    async function analyze() {
-      const text = document.getElementById("text").value;
-      if (!text) return;
+  async function analyze() {
+    const text = document.getElementById("text").value;
+    if (!text) return;
 
-      const resultDiv = document.getElementById("result");
-      const confDiv = document.getElementById("confidence");
-      resultDiv.innerHTML = '';
-      confDiv.innerText = 'Analyzing...';
+    const resultDiv = document.getElementById("result");
+    const confDiv = document.getElementById("confidence");
+    resultDiv.innerHTML = '';
+    confDiv.innerText = 'Analyzing...';
 
-      try {
-        const res = await fetch("/api/hf", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ inputs: text })
-        });
+    try {
+      const res = await fetch("/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inputs: text })
+    });
 
-        const data = await res.json();
+      const data = await res.json();
 
-        if (!res.ok) {
-          throw new Error(data.error || JSON.stringify(data));
-        }
-
-        // Hugging Face returns an array of arrays
-        const predictions = Array.isArray(data[0]) ? data[0] : data;
-
-        // Pick the highest-scoring label
-        const best = predictions.reduce((a, b) => (a.score > b.score ? a : b));
-
-        const numStars = parseInt(best.label); // e.g., "3 stars" -> 3
-        const totalStars = 5;
-
-        // Create star elements
-        for (let i = 0; i < totalStars; i++) {
-          const star = document.createElement('span');
-          star.classList.add('star');
-          star.innerText = '★';
-          resultDiv.appendChild(star);
-        }
-
-        // Animate filling stars one by one
-        const stars = resultDiv.querySelectorAll('.star');
-        for (let i = 0; i < numStars; i++) {
-          setTimeout(() => stars[i].classList.add('filled'), i * 300);
-        }
-
-        // Display confidence
-        confDiv.innerText = `Confidence: ${(best.score * 100).toFixed(1)}%`;
-
-      } catch (err) {
-        resultDiv.innerHTML = '';
-        confDiv.innerText = "Error: " + err.message;
+      if (!res.ok) {
+        throw new Error(data.error || JSON.stringify(data));
       }
+
+      // Expecting data like: [{label: "Positive", score: 0.99}]
+      const predictions = Array.isArray(data) ? data : [];
+      if (predictions.length === 0) throw new Error("No predictions returned.");
+
+      // Pick the highest scoring prediction
+      const best = predictions.reduce((a, b) => (a.score > b.score ? a : b));
+
+      // Map sentiment label to stars (customize mapping here)
+      let numStars;
+      switch (best.label.toLowerCase()) {
+        case "positive":
+          numStars = 5;
+          break;
+        case "neutral":
+          numStars = 3;
+          break;
+        case "negative":
+          numStars = 1;
+          break;
+        default:
+          numStars = 0;
+      }
+
+      const totalStars = 5;
+
+      // Create star elements
+      for (let i = 0; i < totalStars; i++) {
+        const star = document.createElement('span');
+        star.classList.add('star');
+        star.innerText = '★';
+        resultDiv.appendChild(star);
+      }
+
+      // Animate filling stars one by one
+      const stars = resultDiv.querySelectorAll('.star');
+      for (let i = 0; i < numStars; i++) {
+        setTimeout(() => stars[i].classList.add('filled'), i * 300);
+      }
+
+      // Display confidence
+      confDiv.innerText = `Label: ${best.label}, Confidence: ${(best.score * 100).toFixed(1)}%`;
+
+    } catch (err) {
+      resultDiv.innerHTML = '';
+      confDiv.innerText = "Error: " + err.message;
     }
-  </script>
+  }
+</script>
+
 </body>
 </html>
