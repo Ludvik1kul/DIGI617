@@ -2,38 +2,126 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Sentiment Demo</title>
+  <title>Sentiment Analyse</title>
   <style>
-    .stars {
-      font-size: 2em;
-      line-height: 1;
+    body {
       display: flex;
-      gap: 0.1em;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #89f7fe, #66a6ff);
+      color: #222;
     }
-    .star {
-      color: #222; /* default dark for empty stars */
-      transition: color 0.3s ease;
+    .container {
+      text-align: center;
+      max-width: 600px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 2em;
+      border-radius: 1em;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      margin-bottom: 80px; /* so footer doesn’t overlap */
     }
-    .star.filled {
-      color: gold;
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      padding: 0.5em;
+      resize: vertical;
     }
-    #confidence {
+    select, button {
       margin-top: 0.5em;
+      padding: 0.6em 1.2em;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
       font-size: 1em;
-      color: #555;
+    }
+    select {
+      background: #f1f1f1;
+    }
+    button {
+      background: #66a6ff;
+      color: white;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #4a8cff;
+    }
+    #model-description {
+      margin-top: 0.5em;
+      font-size: 0.95em;
+      font-style: italic;
+      color: #444;
+    }
+    #result, #confidence {
+      margin-top: 1em;
+      font-size: 1.1em;
+      color: #333;
+      white-space: pre-wrap;
+      text-align: left;
+    }
+    /* Bottom box */
+    .footer-box {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.95);
+      border-top: 2px solid #66a6ff;
+      text-align: center;
+      padding: 0.8em;
+      font-size: 0.9em;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.15);
     }
   </style>
 </head>
 <body>
-  <h2>Sentiment Generator</h2>
-  <textarea id="text" rows="4" cols="50" placeholder="Type something..."></textarea><br><br>
-  <button onclick="analyze()">Analyze</button>
-  <div id="result" class="stars"></div>
-  <div id="confidence"></div>
+  <div class="container">
+    <h2>Sentiment modeller</h2>
 
-  <script>
-  async function analyze() {
+    <label for="model">Choose model:</label><br>
+    <select id="model" onchange="updateDescription()">
+      <option value="sentiment1"> Sentiment (sst2)</option>
+      <option value="sentiment2">ltg/norbert3-large_sentence-sentiment</option>
+      <option value="TSA">Norgbert3-large_TSA</option>
+    </select>
+    <div id="model-description"></div><br>
+
+    <textarea id="text" rows="4" placeholder="Type something..."></textarea><br>
+    <button onclick="analyze()">Analyze</button>
+
+    <div id="result"></div>
+    <div id="confidence"></div>
+  </div>
+
+  <!-- Always visible footer box -->
+  <div class="footer-box">
+    Ved feil, spørsmål eller forslag, ta kontakt på <a href="mailto:lsl007@uib.no">lsl007@uib.no</a>
+  </div>
+
+<script>
+  const descriptions = {
+    sentiment1: "Denne modelen er trent på SST2(Stanford Sentiment Treebank 2) datasettet som har blitt maskinoversatt til norsk. SST2 datasettet er orginalt på engelsk og består av setninger fra filmanmeldelser og er annotert for sentiment(positiv/negativ). Modellen er finjustert på LTG NorBERT 3 Large modellen for å spesifikt forbedre kvalitenen på hvordan den håndtere norske tekster.",
+    sentiment2: "Norbert3-large_sentence-sentiment: En vidreutvikling av https://huggingface.co/ltg/norbert3-base som er finjustert på https://huggingface.co/datasets/ltg/norec_sentence.",
+    TSA: "Norbert3-large_TSA: En model for sentiment klassifisering av enkelt objekter eller deler av en tekst. Prøv å skriv en lengere setning som beskriver noe. Modellen gir så en sentiment score for hvert objekt den plukker opp. Merk: Modellen kan av og til slite litt med å identifisere et objekt og konsept, så vil derefor ikke returnere noe som helst. Eksempel: Det er noe nydelig med vin fra Burgund, det har en nyanse du ikke finner noen andre steder."
+  };
+
+  function updateDescription() {
+    const model = document.getElementById("model").value;
+    document.getElementById("model-description").innerText = descriptions[model] || "";
+  }
+
+  // Initialize description on page load
+  window.onload = updateDescription;
+
+async function analyze() {
     const text = document.getElementById("text").value;
+    const model = document.getElementById("model").value;
     if (!text) return;
 
     const resultDiv = document.getElementById("result");
@@ -42,65 +130,56 @@
     confDiv.innerText = 'Analyzing...';
 
     try {
-      const res = await fetch("/analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ inputs: text })
-    });
+        const res = await fetch("/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ inputs: text, model: model })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || JSON.stringify(data));
 
-      const data = await res.json();
+        confDiv.innerText = '';
 
-      if (!res.ok) {
-        throw new Error(data.error || JSON.stringify(data));
-      }
+        // TSA token classification (multiple tokens)
+        if (model === "TSA") {
+            let displayText = "";
+            for (const [label, entries] of Object.entries(data)) {
+                displayText += label.replace("targ-", "") + ":\n";
+                entries.forEach(item => {
+                    displayText += `    Target: "${item.word.trim()}"\n`;
+                    displayText += `    Score: ${item.score.toFixed(3)}\n\n`;
+                });
+            }
+            resultDiv.innerText = displayText.trim();
 
-      // Expecting data like: [{label: "Positive", score: 0.99}]
-      const predictions = Array.isArray(data) ? data : [];
-      if (predictions.length === 0) throw new Error("No predictions returned.");
-
-      // Pick the highest scoring prediction
-      const best = predictions.reduce((a, b) => (a.score > b.score ? a : b));
-
-      // Map sentiment label to stars (customize mapping here)
-      let numStars;
-      switch (best.label.toLowerCase()) {
-        case "positive":
-          numStars = 5;
-          break;
-        case "neutral":
-          numStars = 3;
-          break;
-        case "negative":
-          numStars = 1;
-          break;
-        default:
-          numStars = 0;
-      }
-
-      const totalStars = 5;
-
-      // Create star elements
-      for (let i = 0; i < totalStars; i++) {
-        const star = document.createElement('span');
-        star.classList.add('star');
-        star.innerText = '★';
-        resultDiv.appendChild(star);
-      }
-
-      // Animate filling stars one by one
-      const stars = resultDiv.querySelectorAll('.star');
-      for (let i = 0; i < numStars; i++) {
-        setTimeout(() => stars[i].classList.add('filled'), i * 300);
-      }
-
-      // Display confidence
-      confDiv.innerText = `Label: ${best.label}, Confidence: ${(best.score * 100).toFixed(1)}%`;
+        // Sentiment models
+        } else {
+            // Assuming data is a list of one dict with "label" and "score"
+            if (Array.isArray(data) && data.length === 1) {
+                const item = data[0];
+                const label = item.label;
+                const score = item.score.toFixed(3);
+                // Optional: color coding
+                let color = "";
+                switch(label.toLowerCase()) {
+                    case "positive": color = "green"; break;
+                    case "negative": color = "red"; break;
+                    case "neutral": color = "gray"; break;
+                    case "mixed": color = "orange"; break;
+                    default: color = "black";
+                }
+                resultDiv.innerHTML = `<strong style="color:${color}">Sentiment: ${label}</strong><br>Score: ${score}`;
+            } else {
+                // fallback
+                resultDiv.innerText = JSON.stringify(data, null, 2);
+            }
+        }
 
     } catch (err) {
-      resultDiv.innerHTML = '';
-      confDiv.innerText = "Error: " + err.message;
+        resultDiv.innerHTML = '';
+        confDiv.innerText = "Error: " + err.message;
     }
-  }
+}
 </script>
 
 </body>
